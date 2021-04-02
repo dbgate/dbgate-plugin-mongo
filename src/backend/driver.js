@@ -51,6 +51,23 @@ const driver = {
     const res = await pool.db().admin().listDatabases();
     return res.databases;
   },
+  async readCollection(pool, options) {
+    try {
+      const collection = pool.db().collection(options.pureName);
+      if (options.countDocuments) {
+        const count = await collection.countDocuments();
+        return { count };
+      } else {
+        let cursor = await collection.find();
+        if (options.skip) cursor = cursor.skip(options.skip);
+        if (options.limit) cursor = cursor.limit(options.limit);
+        const rows = await cursor.toArray();
+        return { rows };
+      }
+    } catch (err) {
+      return { errorMessage: err.message };
+    }
+  },
 };
 
 module.exports = driver;

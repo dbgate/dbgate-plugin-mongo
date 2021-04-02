@@ -8,6 +8,7 @@ const dialect = {
   offsetFetchRangeSyntax: true,
   stringEscapeChar: "'",
   fallbackDataType: 'nvarchar(max)',
+  nosql: true,
   quoteIdentifier(s) {
     return `[${s}]`;
   },
