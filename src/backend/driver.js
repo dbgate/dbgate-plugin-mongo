@@ -58,7 +58,7 @@ const driver = {
         const count = await collection.countDocuments();
         return { count };
       } else {
-        let cursor = await collection.find();
+        let cursor = await collection.find(options.condition || {});
         if (options.skip) cursor = cursor.skip(options.skip);
         if (options.limit) cursor = cursor.limit(options.limit);
         const rows = await cursor.toArray();
