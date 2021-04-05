@@ -3,6 +3,17 @@ const stream = require('stream');
 const driverBase = require('../frontend/driver');
 const Analyser = require('./Analyser');
 const MongoClient = require('mongodb').MongoClient;
+const ObjectId = require('mongodb').ObjectId;
+
+const mongoIdRegex = /^[0-9a-f]{24}$/;
+function convertCondition(condition) {
+  if (condition && _.isString(condition._id) && condition._id.match(mongoIdRegex)) {
+    return {
+      _id: ObjectId(condition._id),
+    };
+  }
+  return condition;
+}
 
 /** @type {import('dbgate-types').EngineDriver} */
 const driver = {
@@ -55,7 +66,7 @@ const driver = {
     try {
       const collection = pool.db().collection(options.pureName);
       if (options.countDocuments) {
-        const count = await collection.countDocuments();
+        const count = await collection.countDocuments(options.condition || {});
         return { count };
       } else {
         let cursor = await collection.find(options.condition || {});
@@ -64,6 +75,48 @@ const driver = {
         const rows = await cursor.toArray();
         return { rows };
       }
+    } catch (err) {
+      return { errorMessage: err.message };
+    }
+  },
+  async updateCollection(pool, changeSet) {
+    const res = {
+      inserted: [],
+      updated: [],
+      deleted: [],
+      replaced: [],
+    };
+    try {
+      const db = pool.db();
+      for (const insert of changeSet.inserts) {
+        const collection = db.collection(insert.pureName);
+        const document = {
+          ...insert.document,
+          ...insert.fields,
+        };
+        const resdoc = await collection.insert(document);
+        res.inserted.push(resdoc._id);
+      }
+      for (const update of changeSet.updates) {
+        const collection = db.collection(update.pureName);
+        if (update.document) {
+          const document = {
+            ...update.document,
+            ...update.fields,
+          };
+          const resdoc = await collection.replaceOne(convertCondition(update.condition), document);
+          res.replaced.push(resdoc._id);
+        } else {
+          const resdoc = await collection.updateOne(convertCondition(update.condition), { $set: update.fields });
+          res.updated.push(resdoc._id);
+        }
+      }
+      for (const del of changeSet.deletes) {
+        const collection = db.collection(del.pureName);
+        const resdoc = await collection.deleteOne(convertCondition(del.condition));
+        res.deleted.push(resdoc._id);
+      }
+      return res;
     } catch (err) {
       return { errorMessage: err.message };
     }
