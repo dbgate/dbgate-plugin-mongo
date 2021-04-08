@@ -26,6 +26,13 @@ function convertCondition(condition) {
   return condition;
 }
 
+function findArrayResult(resValue) {
+  if (!_.isPlainObject(resValue)) return null;
+  const arrays = _.values(resValue).filter((x) => _.isArray(x));
+  if (arrays.length == 1) return arrays[0];
+  return null;
+}
+
 /** @type {import('dbgate-types').EngineDriver} */
 const driver = {
   ...driverBase,
@@ -82,13 +89,26 @@ const driver = {
       await readCursor(exprValue, options);
     } else if (isPromise(exprValue)) {
       try {
-        await exprValue;
+        const resValue = await exprValue;
 
         options.info({
           message: 'Command succesfully executed',
           time: new Date(),
           severity: 'info',
         });
+        options.info({
+          message: JSON.stringify(resValue),
+          time: new Date(),
+          severity: 'info',
+        });
+
+        const arrayRes = findArrayResult(resValue);
+        if (arrayRes) {
+          options.recordset({ __isDynamicStructure: true });
+          for (const row of arrayRes) {
+            options.row(row);
+          }
+        }
       } catch (err) {
         options.info({
           message: 'Error when running command: ' + err.message,
@@ -189,6 +209,11 @@ const driver = {
     } catch (err) {
       return { errorMessage: err.message };
     }
+  },
+
+  async createDatabase(pool, name) {
+    const db = pool.db(name);
+    await db.createCollection('collection1');
   },
 };
 
