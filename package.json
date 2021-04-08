@@ -21,9 +21,12 @@
   "devDependencies": {
     "byline": "^5.0.0",
     "dbgate-plugin-tools": "^1.0.4",
-    "dbgate-tools": "^1.0.4",
+    "dbgate-tools": "^4.1.0-rc.1",
     "mongodb": "^3.6.5",
     "webpack": "^4.42.0",
     "webpack-cli": "^3.3.11"
+  },
+  "dependencies": {
+    "is-promise": "^4.0.0"
   }
 }

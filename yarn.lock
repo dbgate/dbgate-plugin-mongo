@@ -957,10 +957,10 @@ dbgate-plugin-tools@^1.0.4:
     pacote "^11.1.13"
     rimraf "^3.0.2"
 
-dbgate-tools@^1.0.4:
-  version "1.0.8"
-  resolved "https://registry.yarnpkg.com/dbgate-tools/-/dbgate-tools-1.0.8.tgz#a28edd6defac272bb96954e031d590920e88852c"
-  integrity sha512-G0rVIiI1dJEdYvk7jOaPRO8VwfnfUCw2Oa7v28Gx5G1bDk/mCNfP4S6ymQyyGU2jOej89hhUeH7c0J4YcQIV2g==
+dbgate-tools@^4.1.0-rc.1:
+  version "4.1.0-rc.1"
+  resolved "https://registry.yarnpkg.com/dbgate-tools/-/dbgate-tools-4.1.0-rc.1.tgz#563e5c00508c8f91b9420132ecbde8fe2a84d30d"
+  integrity sha512-HtnEEBtnlLTqedi7OY8LJCuwc6nY7mhywoxrTYZBFczHh2Z5X2wBAxErx85EDNZe8OnaBtYJT0TND+bBpOeDrQ==
   dependencies:
     lodash "^4.17.15"
 
@@ -1837,6 +1837,11 @@ is-plain-object@^2.0.3, is-plain-object@^2.0.4:
   integrity sha512-h5PpgXkWitc38BBMYawTYMWJHFZJVnBquFE57xFpjB8pJFiF6gZ+bU+WyI/yqXiFR5mdLsgYNaPe8uao6Uv9Og==
   dependencies:
     isobject "^3.0.1"
+
+is-promise@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/is-promise/-/is-promise-4.0.0.tgz#42ff9f84206c1991d26debf520dd5c01042dd2f3"
+  integrity sha512-hvpoI6korhJMnej285dSg6nu1+e6uxs7zG3BYAm5byqDsgJNWwxzM6z6iZiAgQR4TJ30JmBTOwqZUw3WlyH3AQ==
 
 is-typedarray@~1.0.0:
   version "1.0.0"
