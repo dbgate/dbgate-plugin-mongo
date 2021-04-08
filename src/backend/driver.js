@@ -70,6 +70,7 @@ const driver = {
         return { count };
       } else {
         let cursor = await collection.find(options.condition || {});
+        if (options.sort) cursor = cursor.sort(options.sort);
         if (options.skip) cursor = cursor.skip(options.skip);
         if (options.limit) cursor = cursor.limit(options.limit);
         const rows = await cursor.toArray();
