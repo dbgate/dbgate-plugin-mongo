@@ -1,9 +1,20 @@
 const _ = require('lodash');
 const stream = require('stream');
+const isPromise = require('is-promise');
 const driverBase = require('../frontend/driver');
 const Analyser = require('./Analyser');
 const MongoClient = require('mongodb').MongoClient;
 const ObjectId = require('mongodb').ObjectId;
+const Cursor = require('mongodb').Cursor;
+
+function readCursor(cursor, options) {
+  return new Promise((resolve) => {
+    options.recordset({ __isDynamicStructure: true });
+
+    cursor.on('data', (data) => options.row(data));
+    cursor.on('end', () => resolve());
+  });
+}
 
 const mongoIdRegex = /^[0-9a-f]{24}$/;
 function convertCondition(condition) {
@@ -36,7 +47,58 @@ const driver = {
     };
   },
   async stream(pool, sql, options) {
-    return null;
+    let func;
+    try {
+      func = eval(`(db,ObjectId) => ${sql}`);
+    } catch (err) {
+      options.info({
+        message: 'Error compiling expression: ' + err.message,
+        time: new Date(),
+        severity: 'error',
+      });
+      options.done();
+      return;
+    }
+    const db = pool.db();
+    const collections = await db.listCollections().toArray();
+    for (const collection of collections) {
+      db[collection.name] = db.collection(collection.name);
+    }
+
+    let exprValue;
+    try {
+      exprValue = func(db, ObjectId);
+    } catch (err) {
+      options.info({
+        message: 'Error evaluating expression: ' + err.message,
+        time: new Date(),
+        severity: 'error',
+      });
+      options.done();
+      return;
+    }
+
+    if (exprValue instanceof Cursor) {
+      await readCursor(exprValue, options);
+    } else if (isPromise(exprValue)) {
+      try {
+        await exprValue;
+
+        options.info({
+          message: 'Command succesfully executed',
+          time: new Date(),
+          severity: 'info',
+        });
+      } catch (err) {
+        options.info({
+          message: 'Error when running command: ' + err.message,
+          time: new Date(),
+          severity: 'error',
+        });
+      }
+    }
+
+    options.done();
   },
   async readQuery(pool, sql, structure) {
     const pass = new stream.PassThrough({
