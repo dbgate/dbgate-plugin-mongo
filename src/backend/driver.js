@@ -104,8 +104,14 @@ const driver = {
             ...update.document,
             ...update.fields,
           };
-          const resdoc = await collection.replaceOne(convertCondition(update.condition), document);
-          res.replaced.push(resdoc._id);
+          const doc = await collection.findOne(convertCondition(update.condition));
+          if (doc) {
+            const resdoc = await collection.replaceOne(convertCondition(update.condition), {
+              ...document,
+              _id: doc._id,
+            });
+            res.replaced.push(resdoc._id);
+          }
         } else {
           const resdoc = await collection.updateOne(convertCondition(update.condition), { $set: update.fields });
           res.updated.push(resdoc._id);
