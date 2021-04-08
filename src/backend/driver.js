@@ -6,6 +6,7 @@ const Analyser = require('./Analyser');
 const MongoClient = require('mongodb').MongoClient;
 const ObjectId = require('mongodb').ObjectId;
 const Cursor = require('mongodb').Cursor;
+const { createBulkInsertStream } = require('./createBulkInsertStream');
 
 function readCursor(cursor, options) {
   return new Promise((resolve) => {
@@ -31,6 +32,15 @@ function findArrayResult(resValue) {
   const arrays = _.values(resValue).filter((x) => _.isArray(x));
   if (arrays.length == 1) return arrays[0];
   return null;
+}
+
+async function getScriptableDb(pool) {
+  const db = pool.db();
+  const collections = await db.listCollections().toArray();
+  for (const collection of collections) {
+    db[collection.name] = db.collection(collection.name);
+  }
+  return db;
 }
 
 /** @type {import('dbgate-types').EngineDriver} */
@@ -66,11 +76,7 @@ const driver = {
       options.done();
       return;
     }
-    const db = pool.db();
-    const collections = await db.listCollections().toArray();
-    for (const collection of collections) {
-      db[collection.name] = db.collection(collection.name);
-    }
+    const db = await getScriptableDb(pool);
 
     let exprValue;
     try {
@@ -121,20 +127,35 @@ const driver = {
     options.done();
   },
   async readQuery(pool, sql, structure) {
-    const pass = new stream.PassThrough({
-      objectMode: true,
-      highWaterMark: 100,
-    });
+    try {
+      const json = JSON.parse(sql);
+      if (json && json.pureName) {
+        sql = `db.${json.pureName}.find()`;
+      }
+    } catch (err) {
+      // query is not JSON serialized collection name
+    }
 
-    // pass.write(structure)
-    // pass.write(row1)
-    // pass.write(row2)
-    // pass.end()
+    // const pass = new stream.PassThrough({
+    //   objectMode: true,
+    //   highWaterMark: 100,
+    // });
 
-    return pass;
+    func = eval(`(db,ObjectId) => ${sql}`);
+    const db = await getScriptableDb(pool);
+    exprValue = func(db, ObjectId);
+
+    // return directly stream without header row
+    return exprValue;
+
+    // pass.write(structure || { __isDynamicStructure: true });
+    // exprValue.on('data', (row) => pass.write(row));
+    // exprValue.on('end', () => pass.end());
+
+    // return pass;
   },
   async writeTable(pool, name, options) {
-    return createBulkInsertStreamBase(this, stream, pool, name, options);
+    return createBulkInsertStream(this, stream, pool, name, options);
   },
   async getVersion(pool) {
     const status = await pool.db().admin().serverInfo();
