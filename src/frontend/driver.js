@@ -31,6 +31,8 @@ const driver = {
   engine: 'mongo@dbgate-plugin-mongo',
   title: 'MongoDB',
   defaultPort: 27017,
+  supportsDatabaseUrl: true,
+  databaseUrlPlaceholder: 'e.g. mongodb://username:password@mongodb.mydomain.net/dbname',
 
   getCollectionUpdateScript(changeSet) {
     let res = '';

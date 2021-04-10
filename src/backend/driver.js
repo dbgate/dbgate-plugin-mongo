@@ -47,11 +47,23 @@ async function getScriptableDb(pool) {
 const driver = {
   ...driverBase,
   analyserClass: Analyser,
-  async connect({ server, port, user, password, database }) {
-    let mongoUrl = user ? `mongodb://${user}:${password}@${server}:${port}` : `mongodb://${server}:${port}`;
-    if (database) mongoUrl += '/' + database;
+  async connect({ server, port, user, password, database, useDatabaseUrl, databaseUrl, ssl }) {
+    let mongoUrl = databaseUrl;
+    if (!useDatabaseUrl) {
+      mongoUrl = user ? `mongodb://${user}:${password}@${server}:${port}` : `mongodb://${server}:${port}`;
+      if (database) mongoUrl += '/' + database;
+    }
 
-    const pool = new MongoClient(mongoUrl);
+    const options = {};
+    if (ssl) {
+      options.tls = true;
+      options.tlsCAFile = ssl.ca;
+      options.tlsCertificateKeyFile = ssl.cert || ssl.key;
+      options.tlsCertificateKeyFilePassword = ssl.password;
+      options.tlsAllowInvalidCertificates = !ssl.rejectUnauthorized;
+    }
+
+    const pool = new MongoClient(mongoUrl, options);
     await pool.connect();
     // const pool = await MongoClient.connect(mongoUrl);
     return pool;
