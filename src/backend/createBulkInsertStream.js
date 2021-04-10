@@ -1,6 +1,6 @@
 export function createBulkInsertStream(driver, stream, pool, name, options) {
   const collectionName = name.pureName;
-  const db = pool.db();
+  const db = pool.__getDatabase();
 
   const writable = new stream.Writable({
     objectMode: true,

@@ -35,7 +35,7 @@ function findArrayResult(resValue) {
 }
 
 async function getScriptableDb(pool) {
-  const db = pool.db();
+  const db = pool.__getDatabase();
   const collections = await db.listCollections().toArray();
   for (const collection of collections) {
     db[collection.name] = db.collection(collection.name);
@@ -48,11 +48,16 @@ const driver = {
   ...driverBase,
   analyserClass: Analyser,
   async connect({ server, port, user, password, database, useDatabaseUrl, databaseUrl, ssl }) {
-    let mongoUrl = databaseUrl;
-    if (!useDatabaseUrl) {
-      mongoUrl = user ? `mongodb://${user}:${password}@${server}:${port}` : `mongodb://${server}:${port}`;
-      if (database) mongoUrl += '/' + database;
-    }
+    // let mongoUrl = databaseUrl;
+    // if (!useDatabaseUrl) {
+    //   mongoUrl = user ? `mongodb://${user}:${password}@${server}:${port}` : `mongodb://${server}:${port}`;
+    //   if (database) mongoUrl += '/' + database;
+    // }
+    const mongoUrl = useDatabaseUrl
+      ? databaseUrl
+      : user
+      ? `mongodb://${user}:${password}@${server}:${port}`
+      : `mongodb://${server}:${port}`;
 
     const options = {};
     if (ssl) {
@@ -66,6 +71,8 @@ const driver = {
     const pool = new MongoClient(mongoUrl, options);
     await pool.connect();
     // const pool = await MongoClient.connect(mongoUrl);
+    pool.__getDatabase = database ? () => pool.db(database) : () => pool.db();
+    pool.__databaseName = database;
     return pool;
   },
   // @ts-ignore
@@ -170,16 +177,16 @@ const driver = {
     return createBulkInsertStream(this, stream, pool, name, options);
   },
   async getVersion(pool) {
-    const status = await pool.db().admin().serverInfo();
+    const status = await pool.__getDatabase().admin().serverInfo();
     return status;
   },
   async listDatabases(pool) {
-    const res = await pool.db().admin().listDatabases();
+    const res = await pool.__getDatabase().admin().listDatabases();
     return res.databases;
   },
   async readCollection(pool, options) {
     try {
-      const collection = pool.db().collection(options.pureName);
+      const collection = pool.__getDatabase().collection(options.pureName);
       if (options.countDocuments) {
         const count = await collection.countDocuments(options.condition || {});
         return { count };
@@ -203,7 +210,7 @@ const driver = {
       replaced: [],
     };
     try {
-      const db = pool.db();
+      const db = pool.__getDatabase();
       for (const insert of changeSet.inserts) {
         const collection = db.collection(insert.pureName);
         const document = {

@@ -6,7 +6,7 @@ class Analyser extends DatabaseAnalyser {
   }
 
   async _runAnalysis() {
-    const collections = await this.pool.db().listCollections().toArray();
+    const collections = await this.pool.__getDatabase().listCollections().toArray();
 
     const res = this.mergeAnalyseResult(
       {
